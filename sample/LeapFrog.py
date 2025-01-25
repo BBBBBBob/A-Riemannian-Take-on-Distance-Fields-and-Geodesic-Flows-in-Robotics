@@ -76,7 +76,7 @@ class LeapFrog(object):
     def update_p(self):
         self.p = self.p - self.eps * 0.5 * self.dH_dq_auto(self.q, self.p)
 
-    def update_variables(self):
+    def update_all(self):
         self.update_p_half()
         self.update_q()
         self.update_p()

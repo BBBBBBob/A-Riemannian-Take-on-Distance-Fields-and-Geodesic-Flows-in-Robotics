@@ -34,7 +34,7 @@ class RMHMC(object):
 
             rand_frog_iter = random.randint(self.frog_iter, self.frog_iter+10)
             for _ in range(rand_frog_iter):
-                self.integrator.update_variables()
+                self.integrator.update_all()
 
             H_diff = self.integrator.H(q_start, p_start) - self.integrator.H(self.integrator.q, self.integrator.p)
             accept = torch.minimum(torch.ones(self.chain), torch.exp(H_diff))
