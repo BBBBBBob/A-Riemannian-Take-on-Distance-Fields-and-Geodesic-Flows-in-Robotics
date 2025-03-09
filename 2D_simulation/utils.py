@@ -49,7 +49,7 @@ def compute_Jacobian(x,config):
 def compute_AD_Jacobian(x, config):
     return jacrev(compute_forward_kinematics)(x, config)
 
-def compute_forward_kinematics(x,config):
+def compute_forward_kinematics(x, config):
     B = x.size(0)
     L = torch.tril(torch.ones([2, 2])).expand(B,- 1, -1).float().to(config.device)
     x = x.unsqueeze(2)
@@ -62,29 +62,15 @@ def compute_forward_kinematics(x,config):
     return f 
 
 
+def factored_gradient(q_c, x_s, phi, config): ## grad size batch * 2
+    # grad_phi = torch.autograd.grad(outputs=phi, inputs=q_c, grad_outputs=torch.ones_like(phi).to(self.config.device),
+    #                         only_inputs=True,create_graph=True, retain_graph=True)[0]
+    x_c = compute_forward_kinematics(q_c, config)
+    d_e = torch.linalg.norm(x_c-x_s, dim=1, keepdim=True)
+    grad = torch.autograd.grad(outputs=phi*d_e, inputs=q_c, grad_outputs=torch.ones_like(phi).to(self.config.device),
+                                only_inputs=True,create_graph=True, retain_graph=True)[0]
+    return grad[:, :, None]
 
-# def quiver(ax,X,Y,U,V,subsampling=tuple(),**kwargs):
-# 	if np.ndim(subsampling)==0: subsampling = (subsampling,)*2
-# 	where = tuple(slice(None,None,s) for s in subsampling)
-# 	def f(Z): return Z.__getitem__(where)
-# 	return ax.quiver(f(X),f(Y),f(U),f(V),**kwargs)
-#
-# def set_uniform_pts(tips = [6,6]):
-#     X,Y = torch.meshgrid(torch.linspace(-3.0, 3.0, tips[0]), torch.linspace(-3.0, 3.0, tips[1]))
-#     pts = torch.stack([X.reshape(-1), Y.reshape(-1)], dim=1)
-#     return pts
-#
-#
-# def check_metric(M):
-#     eigvals, eigvecs = torch.linalg.eig(M.float())
-#     values = eigvals.real
-#     # print(values)
-#     print('min:',values.min(dim=0)[0],'\n','max:', values.max(dim=0)[0],'\n','mean:', values.mean(dim=0))
-#     # clamped_eigvals = torch.clamp(eigvals.real, min=1.0,max=100.0).float()
-#     # # print(clamped_eigvals.min(), clamped_eigvals.max())
-#     # eigvecs = eigvecs.float()
-#     # clamped_eigvals = clamped_eigvals.float()
-#     # D = torch.diag_embed(clamped_eigvals)
-#     # # print(D.shape)
-#     # M = torch.matmul(torch.matmul(eigvecs, D), eigvecs.inverse())
-#     return M
+def weighted_norm(gradient, weight): ## gradient size batch * 2 * 1, weight batch 2 * 2
+
+    return torch.bmm(torch.bmm(gradient.permute(0, 2, 1), weight), gradient)
